@@ -5,6 +5,7 @@
 *.bak
 *.df
 *.csv
+*.zip
 .pytest_cache
 .DS_Store
 .idea
