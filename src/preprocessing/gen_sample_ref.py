@@ -5,8 +5,8 @@ from tqdm import tqdm
 
 #TRANS_DATA = "../data/trans_500.csv"
 
-TRANS_DATA = "../../Data/transactions_train.csv"
-SAMPLE_SUBMIT = "../data/sample_submission.csv"
+TRANS_DATA = "../../../Data/transactions_after_may.csv"
+SAMPLE_SUBMIT = "../../data/sample_submission.csv"
 
 trans_data = pd.read_csv(TRANS_DATA)
 sample = pd.read_csv(SAMPLE_SUBMIT)
@@ -41,7 +41,7 @@ out_data = {
 
 df = pd.DataFrame(data=out_data)
 
-df.to_csv("submit_ref.csv", index=False)
+df.to_csv("submit_ref_after_may.csv", index=False)
 
 
 

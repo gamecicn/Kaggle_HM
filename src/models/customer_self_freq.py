@@ -6,12 +6,8 @@ import json
 
 from tqdm import tqdm
 
-MOST_REFQ = ["0706016001", "0706016002",
-             "0372860001", "0610776002",
-             "0759871002", "0464297007",
-             "0372860002", "0610776001",
-             "0399223001", "0706016003",
-             "0720125001", "0156231001"]
+
+
 
 
 
@@ -22,10 +18,11 @@ MOST_REFQ = ["0706016001", "0706016002",
 args = {
 
     # Dataset
+    "transaction"       : 'D:/workspace/Kaggle/HM_Recommend/Data/transactions_after_may.csv',
     "article"           : 'D:/workspace/Kaggle/HM_Recommend/Data/articles.csv',
     "data"              : 'D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/data/trans_500.csv',
-    "sample"            : 'D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/data/submit_ref.csv',
-    "submit"            : './sample_submission.csv',
+    "sample"            : 'D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/data/submit_ref_after_may.csv',
+    "submit"            : 'D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/submission/submission_after_may.csv',
 
     "item_size"         : 105542,  # Fixed for HM  data set
     "pad"               : 0,
@@ -57,14 +54,19 @@ args = {
     "r_buy"             : 1.0, # There is no buy in HM data set
 }
 
-from collections import Counter
+def get_most_freq_items():
+    df = pd.read_csv(args["transaction"])
+    return df['article_id'].value_counts()[:12].index.tolist()
+
+
+MOST_REFQ = get_most_freq_items()
 
 def generate_submission():
 
     cid = []
     answer = []
 
-    batch_size = 512
+    batch_size = 1024
 
     with pd.read_csv(args["sample"], chunksize=batch_size) as reader:
 
