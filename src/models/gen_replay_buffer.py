@@ -71,7 +71,7 @@ if __name__ == '__main__':
     STATE_LEN = args.state_len
     DATA = args.data
 
-    # read
+    # Read all transaction data
     print('\nStart reading all transaction data ...')
     start_t = time.time()
     raw_data = pd.read_csv(f"{DATA}//transactions_train.csv")
@@ -87,6 +87,7 @@ if __name__ == '__main__':
     code_to_item = {value: index for index, value in enumerate(item_id)}
     raw_data['article_id'] = raw_data['article_id'].apply(lambda x: code_to_item[x])
 
+
     # Generate data_statis.df for paper format
     if "paper" == args.format:
         dic = {'state_size': [STATE_LEN], 'item_num': [len(raw_data['article_id'].unique())]}
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     else:
         PAD = 0
 
-    # Calculate id to process
+    # Sample customer_id for processing
     if args.size == -1:
         target_cus_size = customer_size
     else:
@@ -107,17 +108,19 @@ if __name__ == '__main__':
         target_id = np.random.choice(customer_ids, size=target_cus_size, replace=False)
     else:
         target_id = customer_ids[args.cus_start : target_cus_size]
-    
-    # Save sampled_session.df/csv
+
+
+    # Filter and ave sampled_session.df/csv
     print('\nFilter and save all valid sampled data')
     sampled_sessions = raw_data[raw_data['customer_id'].isin(target_id)]
-    # only left session length >= 3
+    # only keep sessions with length >= 3
     sampled_sessions.loc[:, 'valid_session'] = sampled_sessions.customer_id.map(sampled_sessions.groupby('customer_id')['article_id'].size() > 2)
     sampled_sessions = sampled_sessions.loc[sampled_sessions.valid_session].drop('valid_session', axis=1)
     
     sampled_sessions.to_csv(os.path.join(DATA, './sampled_sessions.csv'))
     to_pickled_df(DATA, sampled_sessions=sampled_sessions)
-    
+
+
     # Count popularities of items and save % to pop_dict.txt
     print('\nStart counting popularity ...')
     start_t = time.time()
@@ -133,6 +136,7 @@ if __name__ == '__main__':
     with open(os.path.join(DATA, 'pop_dict.txt'), 'w') as f:
         f.write(str(pop_dict))
     print(f'Popularity finished in {time.strftime("%H:%M:%S", time.gmtime(time.time()-start_t))}')
+
 
     # Split into train, val, test
     print('\nStart spliting into train, val, test data ...')
@@ -167,54 +171,51 @@ if __name__ == '__main__':
                 Total article id number  : {article_size}
     ''')
 
-    for seg_id, sub_target_id in enumerate([train_id, val_id, test_id]):
+    # Generating replay buffer from training data
+    print(f"Generating training replay buffer")
 
-        data_set_name = ["train", "val", "test"][seg_id]
+    state, len_state, action, is_buy, next_state, len_next_state, is_done, price, channel = [], [], [], [], [], [], [], [], []
 
-        print(f"Genearting {data_set_name}")
+    groups = sampled_sessions[sampled_sessions["customer_id"].isin(train_id)].groupby("customer_id")
 
-        state, len_state, action, is_buy, next_state, len_next_state, is_done, price, channel = [], [], [], [], [], [], [], [], []
+    for tid, group in tqdm(groups):
 
-        groups = sampled_sessions[sampled_sessions["customer_id"].isin(sub_target_id)].groupby("customer_id")
+        # Skip short history interaction
+        # if group.shape[1] < 3:
+        #     continue
 
-        for tid, group in tqdm(groups):
+        history = []
+        for index, row in group.iterrows():
+            s = list(history)
+            len_state.append(STATE_LEN if len(s) >= STATE_LEN else 1 if len(s) == 0 else len(s))
+            s = pad_history(s, STATE_LEN, PAD)
+            a = row['article_id']
+            price.append(row['price'])
+            channel.append(row['sales_channel_id'])
+            state.append(s)
+            action.append(a)
+            is_buy.append(1)  # is_buy always 1
+            history.append(row['article_id'])
+            next_s = list(history)
+            len_next_state.append(STATE_LEN if len(next_s) >= STATE_LEN else 1 if len(next_s) == 0 else len(next_s))
+            next_s = pad_history(next_s, STATE_LEN, PAD)
+            next_state.append(next_s)
+            is_done.append(False)
+        is_done[-1] = True
 
-            # Skip short history interaction
-            # if group.shape[1] < 3:
-            #     continue
+    dic={'state':state,
+            'len_state':len_state,
+            'action':action,
+            'is_buy':is_buy,
+            'next_state':next_state,
+            'len_next_states':len_next_state,
+            'price' : price,
+            'channel' : channel,
+            'is_done':is_done}
 
-            history = []
-            for index, row in group.iterrows():
-                s = list(history)
-                len_state.append(STATE_LEN if len(s) >= STATE_LEN else 1 if len(s) == 0 else len(s))
-                s = pad_history(s, STATE_LEN, PAD)
-                a = row['article_id']
-                price.append(row['price'])
-                channel.append(row['sales_channel_id'])
-                state.append(s)
-                action.append(a)
-                is_buy.append(0)  # is_buy always 0
-                history.append(row['article_id'])
-                next_s = list(history)
-                len_next_state.append(STATE_LEN if len(next_s) >= STATE_LEN else 1 if len(next_s) == 0 else len(next_s))
-                next_s = pad_history(next_s, STATE_LEN, PAD)
-                next_state.append(next_s)
-                is_done.append(False)
-            is_done[-1] = True
+    reply_buffer=pd.DataFrame(data=dic)
 
-        dic={'state':state,
-             'len_state':len_state,
-             'action':action,
-             'is_buy':is_buy,
-             'next_state':next_state,
-             'len_next_states':len_next_state,
-             'price' : price,
-             'channel' : channel,
-             'is_done':is_done}
-
-        reply_buffer=pd.DataFrame(data=dic)
-
-        if "paper" == args.format:
-            reply_buffer.to_pickle(os.path.join(DATA, f'./reply_buffer_{data_set_name}.df'))
-        else:
-            reply_buffer.to_csv(os.path.join(DATA, f"./reply_buffer_{data_set_name}.csv"), index=False)
+    if "paper" == args.format:
+        reply_buffer.to_pickle(os.path.join(DATA, f'./replay_buffer.df'))
+    else:
+        reply_buffer.to_csv(os.path.join(DATA, f"./replay_buffer.csv"), index=False)
