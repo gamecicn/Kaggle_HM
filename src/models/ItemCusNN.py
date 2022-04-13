@@ -1,7 +1,11 @@
 import numpy as np
 import pandas as pd
 
+import os
+import hashlib
+
 from sklearn.preprocessing import OneHotEncoder
+from tqdm import tqdm
 
 #================================================
 # Config
@@ -17,11 +21,13 @@ args = {
     "submit"            : 'D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/submission/submission_after_may.csv',
 
     # Output
-    "meta_file"         : "D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/data/item_vector",
-
+    "item_vector_data"         : "D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/data/item_vector",
+    "cus_vector_data"          : "D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/data/cus_vector",
+    "item_cus_train_data"      : "D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/data/item_cus_train.csv",
 
     # Data
-    "data_start"        : "2020-05-01",
+    "data_start"            : "2020-05-01",
+    "train_predict_split"   : "2020-08-01",
 
     #"item_cols"         : ["product_type_no", "colour_group_code",
     #                       "perceived_colour_value_id", "perceived_colour_master_id",
@@ -30,6 +36,8 @@ args = {
     "item_cols"         : ["product_type_no", "colour_group_code",
                            "perceived_colour_value_id", "perceived_colour_master_id",
                            "index_code", "index_group_no", "section_no", "garment_group_no"],
+
+    "cus_cols"          : ["Active", "club_member_status", "fashion_news_frequency", "age"],
 
     # Model
     "gru_layer"         : 1,
@@ -71,21 +79,29 @@ def unique_data(data):
     ret_data =  pd.concat([tot,nunique],keys=["Total","Unique Values"],axis=1)
     return ret_data.sort_values(by="Unique Values")
 
-def item_to_vector(item_id):
-    pass
 
-
-import os
-import hashlib
-
-
-def gen_items_to_vec_files():
+def get_item_to_vec_file_name():
 
     col_hash = hashlib.md5(("".join(args["item_cols"])).encode("utf-8")).hexdigest()
 
-    article_file_name = "%s_%s_%s.csv" % (args['meta_file'],
-                                            args['data_start'].replace("-", "_"),
-                                            col_hash)
+    file_name = "%s_%s_%s.csv" % (args['item_vector_data'],
+                                  args['data_start'].replace("-", "_"),
+                                  col_hash)
+
+    return file_name
+
+
+def get_cus_to_vec_file_name():
+
+    col_hash = hashlib.md5(("".join(args["cus_cols"])).encode("utf-8")).hexdigest()
+
+    file_name = "%s_%s.csv" % (args['cus_vector_data'], col_hash)
+
+    return file_name
+
+def gen_items_to_vec_files():
+
+    article_file_name = get_item_to_vec_file_name()
 
     if os.path.exists(article_file_name):
         print("Item vector file already exist.")
@@ -102,7 +118,6 @@ def gen_items_to_vec_files():
     item_df = item_df[item_df["article_id"].isin(used_items)]
     item_df = item_df[["article_id"] + args["item_cols"]]
 
-    #
     del trans
     del used_items
 
@@ -122,10 +137,154 @@ def gen_items_to_vec_files():
     df.to_csv(article_file_name, index=False)
 
 
+def gen_cus_to_vec_files():
+
+    cus_item_file = get_cus_to_vec_file_name()
+
+    if os.path.exists(cus_item_file):
+        print("Item Customer file already exist.")
+        return
+    else:
+        print("Item Customer file not exist, generate")
+
+    cus_df = pd.read_csv(args["customer"])
+    cus_df = cus_df[["customer_id"] + args["cus_cols"]]
+
+    # Fill NAs
+    cus_df["Active"].fillna(0, inplace=True)
+    cus_df["club_member_status"].fillna("UN", inplace=True)
+    cus_df["fashion_news_frequency"].fillna("UN", inplace=True)
+    cus_df["fashion_news_frequency"].fillna("UN", inplace=True)
+    cus_df["age"].fillna(200, inplace=True)
+
+    # bin ages
+    cus_df["age"] = pd.cut(cus_df["age"], [25, 35, 40, 60, 100])
+
+    print(cus_df.info())
+    print(unique_data(cus_df))
+
+    enc = OneHotEncoder()
+    enc.fit(cus_df.iloc[:, 1:])
+    df = pd.DataFrame(enc.transform(cus_df.iloc[:, 1:]).toarray().astype(np.int32))
+    df['customer_id'] = cus_df['customer_id']
+
+    df.to_csv(cus_item_file, index=False)
+
+
+def gen_item_features(items_df, one_cus_df):
+
+    # create item features
+    vec = items_df[items_df['article_id'].isin(one_cus_df)].iloc[:,:-1].sum()
+
+    # norm to sum == 1
+    vec = vec / vec.sum()
+
+    return vec
+
+
+
+
+def gen_customer_features(items_df, one_cus_df):
+
+    a = 0
+
+
+def gen_training_date_set():
+
+    '''
+    if os.path.exists(args["item_cus_train_data"]):
+        print("ItemCusNN Train Data already exist.")
+        return
+    else:
+        print("ItemCusNN Train Data not exist, generate")
+
+    # filter useless items
+    trans = pd.read_csv(args["transaction"])
+
+    train   = trans[(trans["t_dat"] > args["data_start"]) & (trans["t_dat"] < args["train_predict_split"])]
+    predict = trans[trans["t_dat"] > args["train_predict_split"]]
+
+    # Only preserve custom appears in both dataset
+    train = train[train["customer_id"].isin(predict["customer_id"].unique())]
+
+    # Temp : For convenience
+    train.to_csv("tmp_train.csv", index=False)
+    predict.to_csv("tmp_predict.csv", index=False)
+    '''
+
+    train = pd.read_csv("tmp_train.csv")
+    predict = pd.read_csv("tmp_predict.csv")
+
+    # read item & customer file
+    item_df = pd.read_csv(get_item_to_vec_file_name())
+    customer_df = pd.read_csv(get_cus_to_vec_file_name())
+
+    for cid, group in tqdm(train.groupby(["customer_id"])):
+
+        train_items   = train[train["customer_id"] == cid]['article_id']
+        predict_items = predict[predict["customer_id"] == cid]['article_id']
+
+        item_feature = gen_item_features(item_df, train_items)
+
+        cust_feature = gen_customer_features(customer_df, cid)
+
+        a = 0
+
+
+
+
+
+
+
+
+
 
 
 
 if __name__ == '__main__':
 
-
+    # Prepare meta data
+    gen_cus_to_vec_files()
     gen_items_to_vec_files()
+
+    gen_training_date_set()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
