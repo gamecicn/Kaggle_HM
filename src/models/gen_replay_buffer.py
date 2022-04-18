@@ -45,6 +45,9 @@ def to_pickled_df(data_directory, **kwargs):
 
 
 def generate_session_id(df):
+    cus_ids = df['customer_id'].unique()
+    cus_to_sess = {value: index for index, value in enumerate(cus_ids)}
+    df['customer_id'] = df['customer_id'].apply(lambda x: cus_to_sess[x])
     df = df.rename(columns={'customer_id': 'session_id'})
     return df
 
@@ -69,10 +72,6 @@ python gen_replay_buffer.py  --size  20000  --format  csv
 if __name__ == '__main__':
 
     args = parse_args()
-
-    # args.data = "D://workspace//Kaggle//HM_Recommend//Data"
-
-    STATE_LEN = args.state_len
     DATA = args.data
 
     # Read all transaction data
@@ -81,31 +80,14 @@ if __name__ == '__main__':
     raw_data = pd.read_csv(f"{DATA}//transactions_train.csv")
     print(f'Finish reading in {time.strftime("%H:%M:%S", time.gmtime(time.time()-start_t))}')
     
-    # convert customer_id to session_id; article_id to item_id
+    # convert customer_id to session_id; article_id to item_id, t_dat to timestamp
     raw_data = generate_session_id(raw_data)
     raw_data = raw_data.rename(columns={'article_id':'item_id', 't_dat':'timestamp'})
 
+    # Sample session_ids for processing
     session_ids = raw_data['session_id'].unique()
     session_size = len(session_ids)
-
-    item_id      = raw_data['item_id'].unique()
-    item_size = len(item_id)
-
-    # convert original id to paper style id
-    code_to_item = {value: index for index, value in enumerate(item_id)}
-    raw_data['item_id'] = raw_data['item_id'].apply(lambda x: code_to_item[x])
-
-
-    # Generate data_statis.df for paper format
-    if "paper" == args.format:
-        dic = {'state_size': [STATE_LEN], 'item_num': [len(raw_data['item_id'].unique())]}
-        data_statis = pd.DataFrame(data=dic)
-        data_statis.to_pickle(os.path.join(DATA, './data_statis.df'))
-        PAD = item_size
-    else:
-        PAD = 0
-
-    # Sample session_ids for processing
+    
     if args.size == -1:
         target_sess_size = session_size
     else:
@@ -113,23 +95,35 @@ if __name__ == '__main__':
 
     if args.random:
         np.random.seed(args.seed)
-        target_id = np.random.choice(session_ids, size=target_sess_size, replace=False)
+        sampled_session_id = np.random.choice(session_ids, size=target_sess_size, replace=False)
     else:
-        target_id = session_ids[args.sess_start : target_sess_size]
+        sampled_session_id = session_ids[args.sess_start : target_sess_size]
 
+    # convert original id to paper style id
+    item_ids = raw_data['item_id'].unique()
+    item_size = len(item_ids)
+    code_to_item = {value: index for index, value in enumerate(item_ids)}
+    raw_data['item_id'] = raw_data['item_id'].apply(lambda x: code_to_item[x])
 
     # Filter and ave sampled_session.df/csv
     print('\nFilter and save all valid sampled data')
-    sampled_sessions = raw_data[raw_data['session_id'].isin(target_id)]
-    # only keep sessions with length >= 3
-    sampled_sessions.loc[:, 'valid_session'] = sampled_sessions.session_id.map(sampled_sessions.groupby('session_id')['item_id'].size() > 2)
+    sampled_sessions = raw_data[raw_data['session_id'].isin(sampled_session_id)]
+
+    # only keep sessions with length >= 3 <= 150
+    sampled_sessions['valid_session'] = sampled_sessions.session_id.map(sampled_sessions.groupby('session_id')['item_id'].size() > 2)
     sampled_sessions = sampled_sessions.loc[sampled_sessions.valid_session].drop('valid_session', axis=1)
+    sampled_sessions['valid_session'] = sampled_sessions.session_id.map(sampled_sessions.groupby('session_id')['item_id'].size() < 150)
+    sampled_sessions = sampled_sessions.loc[sampled_sessions.valid_session].drop('valid_session', axis=1)
+    # drop unncessary cols
+    print(sampled_sessions.columns)
+    sampled_sessions = sampled_sessions.drop(columns=['price', 'sales_channel_id'])
+    
     # all transactions are buy
     sampled_sessions.loc[:, 'is_buy'] = 1
-    
+    # sort by session_if, timestamp
+    sampled_sessions=sampled_sessions.sort_values(by=['session_id','timestamp'])
     sampled_sessions.to_csv(os.path.join(DATA, './sampled_sessions.csv'))
     to_pickled_df(DATA, sampled_sessions=sampled_sessions)
-
 
     # Count popularities of items and save % to pop_dict.txt
     print('\nStart counting popularity ...')
@@ -150,14 +144,15 @@ if __name__ == '__main__':
 
     # Split into train, val, test
     print('\nStart spliting into train, val, test data ...')
-    train_end_id = int(len(target_id) * 0.7)
-    val_end_id   = int(len(target_id) * 0.9)
+    total_ids = sampled_session_id
+    np.random.shuffle(total_ids)
+    train_end_id = int(len(total_ids) * 0.7)
+    val_end_id   = int(len(total_ids) * 0.9)
 
-    train_id = target_id[:  train_end_id]
-    val_id   = target_id[train_end_id : val_end_id]
-    test_id  = target_id[val_end_id: ]
-    
-    # Save sampled_train, val, test .df
+    train_id = total_ids[:  train_end_id]
+    val_id   = total_ids[train_end_id : val_end_id]
+    test_id  = total_ids[val_end_id: ]
+
     train_sessions = sampled_sessions[sampled_sessions['session_id'].isin(train_id)]
     val_sessions = sampled_sessions[sampled_sessions['session_id'].isin(val_id)]
     test_sessions = sampled_sessions[sampled_sessions['session_id'].isin(test_id)]
@@ -165,6 +160,13 @@ if __name__ == '__main__':
     to_pickled_df(DATA, sampled_train=train_sessions)
     to_pickled_df(DATA, sampled_val=val_sessions)
     to_pickled_df(DATA,sampled_test=test_sessions)
+
+    # pad params
+    STATE_LEN = args.state_len
+    if "paper" == args.format:
+        PAD = item_size
+    else:
+        PAD = 0
 
     print(f'''
            Generate Replay Buffer:
@@ -184,24 +186,24 @@ if __name__ == '__main__':
     # Generating replay buffer from training data
     print(f"Generating training replay buffer")
 
-    state, len_state, action, is_buy, next_state, len_next_state, is_done, price, channel = [], [], [], [], [], [], [], [], []
+    state, len_state, action, is_buy, next_state, len_next_state, is_done = [], [], [], [], [], [], []
 
-    groups = sampled_sessions[sampled_sessions["session_id"].isin(train_id)].groupby("session_id")
+    groups = train_sessions.groupby("session_id")
+    ids = train_sessions.session_id.unique()
 
-    for tid, group in tqdm(groups):
+    for id in tqdm(ids):
+        group = groups.get_group(id)
+        history = []
 
         # Skip short history interaction
         # if group.shape[1] < 3:
         #     continue
 
-        history = []
         for index, row in group.iterrows():
             s = list(history)
             len_state.append(STATE_LEN if len(s) >= STATE_LEN else 1 if len(s) == 0 else len(s))
             s = pad_history(s, STATE_LEN, PAD)
             a = row['item_id']
-            price.append(row['price'])
-            channel.append(row['sales_channel_id'])
             state.append(s)
             action.append(a)
             is_buy.append(row['is_buy'])
@@ -219,13 +221,14 @@ if __name__ == '__main__':
             'is_buy':is_buy,
             'next_state':next_state,
             'len_next_states':len_next_state,
-            'price' : price,
-            'channel' : channel,
             'is_done':is_done}
 
     reply_buffer=pd.DataFrame(data=dic)
 
     if "paper" == args.format:
         reply_buffer.to_pickle(os.path.join(DATA, f'./replay_buffer.df'))
+        dic = {'state_size': [STATE_LEN], 'item_num': [item_size]}
+        data_statis = pd.DataFrame(data=dic)
+        data_statis.to_pickle(os.path.join(DATA, './data_statis.df'))
     else:
         reply_buffer.to_csv(os.path.join(DATA, f"./replay_buffer.csv"), index=False)
