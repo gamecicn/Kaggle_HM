@@ -207,63 +207,35 @@ def gen_training_date_set(split_date):
     #train.to_csv("tmp_train.csv", index=False)
     #predict.to_csv("tmp_predict.csv", index=False)
 
-    train = pd.read_csv("tmp_train.csv") 
+    feature = pd.read_csv("tmp_train.csv")[:5]
     predict = pd.read_csv("tmp_predict.csv")
 
     # read item & customer file
     item_df = pd.read_csv(get_item_to_vec_file_name())
     customer_df = pd.read_csv(get_cus_to_vec_file_name())
 
-    cid_list = []
-    train_list = []
-    ans_list = []
-    train_len = []
-    ans_len = []
-
     predict_group = predict.groupby(['customer_id'])
     customer_df = customer_df.groupby(['customer_id'])
 
-    #counter = 0
-    #batch = 0
+    output = []
 
-    for cid, group in tqdm(train.groupby(["customer_id"])):
+    for cid, group in tqdm(feature.groupby(["customer_id"])):
 
         predict_items = predict_group.get_group(cid)['article_id']
         ans = predict_items.unique()
 
-        #if len(ans) < args["min_ans_size"] :
-        #    continue
-
         item_feature = gen_item_features(item_df, group['article_id'])
-
         all_feature = item_feature.tolist() + customer_df.get_group(cid).iloc[0][:-1].tolist()
 
-        #cid_list.append(cid)
+        ############# One label output
+        #for a in ans:
+        #    output.append(all_feature + [a])
 
-        for a in ans:
-            train_list.append(all_feature)
-            ans_list.append(a)
-            #counter += 1
-        #train_len.append(len(group['article_id']))
-        #ans_len.append(len(ans))
+        ############# Multi label output
+        #output.append(all_feature + ["#".join([str(x) for x in ans])])
 
-        #if counter > 50000:
-
-    #### End for
-
-    dic = {
-           'train': train_list,
-           'answer': ans_list
-            }
-
-    pd.DataFrame(data=dic).to_csv(args["item_cus_train_data"] + ".csv", index=False)
-
-
-
-
-
-def train():
-    pass
+    #np.savetxt(args["item_cus_train_data"] + ".gz", output, fmt="%.4f", delimiter=",")
+    pd.DataFrame(data=output).to_csv(args["item_cus_train_data"] + ".csv", index=False)
 
 
 if __name__ == '__main__':
