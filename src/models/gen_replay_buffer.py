@@ -1,3 +1,4 @@
+from curses import raw
 import pandas as pd
 from tqdm import tqdm
 import os
@@ -65,8 +66,8 @@ def pad_history(itemlist, length, pad_item):
 
 # Usage
 '''
-python gen_replay_buffer.py  --size  20000  --format  paper
-python gen_replay_buffer.py  --size  20000  --format  csv
+python src/models/gen_replay_buffer.py --size 20000 --format paper --data ../HM_data/
+python src/models/gen_replay_buffer.py --size 20000 --format csv --data ../HM_data/
 '''
 
 if __name__ == '__main__':
@@ -83,6 +84,7 @@ if __name__ == '__main__':
     # convert customer_id to session_id; article_id to item_id, t_dat to timestamp
     raw_data = generate_session_id(raw_data)
     raw_data = raw_data.rename(columns={'article_id':'item_id', 't_dat':'timestamp'})
+    raw_data = raw_data[raw_data['timestamp'] > '2018-12-31']
 
     # Sample session_ids for processing
     session_ids = raw_data['session_id'].unique()
@@ -109,10 +111,10 @@ if __name__ == '__main__':
     print('\nFilter and save all valid sampled data')
     sampled_sessions = raw_data[raw_data['session_id'].isin(sampled_session_id)]
 
-    # only keep sessions with length >= 3 <= 150
+    # only keep sessions with length >= 3 <= 50
     sampled_sessions['valid_session'] = sampled_sessions.session_id.map(sampled_sessions.groupby('session_id')['item_id'].size() > 2)
     sampled_sessions = sampled_sessions.loc[sampled_sessions.valid_session].drop('valid_session', axis=1)
-    sampled_sessions['valid_session'] = sampled_sessions.session_id.map(sampled_sessions.groupby('session_id')['item_id'].size() < 150)
+    sampled_sessions['valid_session'] = sampled_sessions.session_id.map(sampled_sessions.groupby('session_id')['item_id'].size() < 50)
     sampled_sessions = sampled_sessions.loc[sampled_sessions.valid_session].drop('valid_session', axis=1)
     # drop unncessary cols
     print(sampled_sessions.columns)
