@@ -24,11 +24,14 @@ Even though the dataset of H&M competition is also prepared for recommend system
 -  **Timestamp**:   RC15/Retailrocket dataset's timestamp accurate to second, while H&M's records only has date information. 
 - **Session**:  RC15/Retailrocket sessions are no more than 50 items, while there are some sessions in H&M dataset are longer than 200 items. The long session would cause RNN model require much more memory and GPU times. 
 
-To overcome above problems, we transformed H&M's transaction log to fit the paper's code. 
-
+To overcome above problems, we transformed H&M's transaction log to fit the paper's code. </br >
+[Preprocess Code](https://github.com/gamecicn/Kaggle_HM/blob/main/src/models/gen_replay_buffer.py)
 
 
 ####  Result 
+We updated the training code in Xinxin's paper to meet our experimental needs. Ex. [SA2C Network Code](https://github.com/gamecicn/Kaggle_HM/blob/main/src/models/SA2C.py), [SNQN Network Code](https://github.com/gamecicn/Kaggle_HM/blob/main/src/models/SNQN.py). </br >
+Then, we created a series of notebooks to set up a suitable environment on [Colab](https://research.google.com/colaboratory/) and used Colab GPU resources to train remotely. Ex. [SNQN Training Noetbook](https://github.com/gamecicn/Kaggle_HM/blob/main/notebook/HM_SNQN_SASRec.ipynb)
+
 
 | **Models**  | **HR@5** | **NG@5** | **HR@10** | **NG@10** | **NR@20** | **NG@20** |
 | :---------: | :------: | :------: | :-------: | :-------: | :-------: | :-------: |
@@ -49,8 +52,34 @@ To overcome above problems, we transformed H&M's transaction log to fit the pape
 
 
 
-
-
+## Code Structure
+```
+├── README.md
+├── img
+│   └── title.png
+├── notebook
+│   ├── Collaborative\ Filtering.ipynb
+│   ├── EDA.ipynb
+│   ├── GRU.ipynb
+│   └── HM_SNQN_SASRec.ipynb
+├── paper
+│   ├── 2006.05779.pdf
+│   └── 2111.03474.pdf
+└── src
+    ├── models
+    │   ├── GRU.py
+    │   ├── NextItNetModules.py
+    │   ├── SA2C.py
+    │   ├── SASRecModules.py
+    │   ├── SNQN.py
+    │   ├── customer_self_freq.py
+    │   ├── gen_replay_buffer.py
+    │   └── utility.py
+    └── preprocessing
+        ├── content_vec_simi.py
+        ├── gen_item_cus_dataset.py
+        └── gen_sample_ref.py
+```
 
 ## Reference
 
