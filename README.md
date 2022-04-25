@@ -22,10 +22,9 @@ Even though the dataset of H&M competition is also prepared for recommend system
   -  H&M                  3.4 GB
 -  **Click & Purchase** :  The RC15/Retailrocket transaction  include 'isbuy' feature which could indicate whether customer bought the item in this click action. However, H&M dataset only recorded purchase actions.  This different brings some difficult because the papes's code has some optimization for purchase. 
 -  **Timestamp**:   RC15/Retailrocket dataset's timestamp accurate to second, while H&M's records only has date information. 
-- **Session**:  RC15/Retailrocket sessions are no more than 50 items, while there are some sessions in H&M dataset are longer than 200 items. The long session would cause RNN model require much more memory and GPU times. 
+- **Session**:  HM data has no session information, so we treat one customer's transactions as one session. WHile most RC15/Retailrocket sessions have fewer than 50 items, the sessions in H&M dataset typically have many more items, some as high as 200. Long sessions cause RNN models to require much more memory and GPU times. 
 
-To overcome above problems, we transformed H&M's transaction log to fit the paper's code. </br >
-[Preprocess Code](https://github.com/gamecicn/Kaggle_HM/blob/main/src/models/gen_replay_buffer.py)
+To overcome above problems, we modified the [data sampling code](https://github.com/gamecicn/Kaggle_HM/blob/main/src/models/gen_replay_buffer.py) to adapt H&M's transaction log to the paper's training code. We only sample training data from 2019 and beyong to ensure the validity of items. Besides, not only sessions with length less than 3 are removed, but also the ones with length over 50 to limit the evaluation memory usage. Finally, we also commented on the part of the calculation of clicks to avoid the calculation error that the number of clicks is 0.
 
 
 ####  Result 
