@@ -24,7 +24,7 @@ args = {
     # Output
     "item_vector_data"         : "D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/data/item_vector",
     "cus_vector_data"          : "D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/data/cus_vector",
-    "item_cus_train_data"      : "D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/data/item_cus_train",
+    "item_cus_train_data"      : "D:/workspace/Kaggle/HM_Recommend/Kaggle_HM/data/item_cus",
 
     # Data
     "data_start"            : "2020-05-01",
@@ -181,14 +181,17 @@ def gen_item_features(items_df, one_cus_df):
     # norm to sum == 1
     return np.array(vec / vec.sum()).round(decimals=5)
 
-
-
-
-def gen_training_date_set(split_date):
-
+def gen_training_date_set(split_date = None, gen_temp_file = False, use_temp_file = False):
     '''
-    if os.path.exists(args["item_cus_train_data"]):
+    :param split_date: split train and test. None mean all data would be treated as training data
+    :return:
+    '''
+
+    if split_date and os.path.exists(args["item_cus_train_data"] + "_train.csv"):
         print("ItemCusNN Train Data already exist.")
+        return
+    elif not split_date and os.path.exists(args["item_cus_train_data"] + "_predict.csv"):
+        print("ItemCusNN Predict Data already exist.")
         return
     else:
         print("ItemCusNN Train Data not exist, generate")
@@ -196,55 +199,77 @@ def gen_training_date_set(split_date):
     # filter useless items
     trans = pd.read_csv(args["transaction"])
 
-    train   = trans[(trans["t_dat"] > args["data_start"]) & (trans["t_dat"] < split_date)]
-    predict = trans[trans["t_dat"] > split_date]
+    if split_date:
+        train = trans[(trans["t_dat"] > args["data_start"]) & (trans["t_dat"] < split_date)]
+        predict = trans[trans["t_dat"] > split_date]
 
-    # Only preserve custom appears in both dataset
-    train = train[train["customer_id"].isin(predict["customer_id"].unique())]
-    '''
+        # Only preserve custom appears in both dataset
+        feature = train[train["customer_id"].isin(predict["customer_id"].unique())]
+    else:
+        train = trans[(trans["t_dat"] > args["data_start"])]
+        predict = None
+        feature = train
 
     # Temp : For convenience
-    #train.to_csv("tmp_train.csv", index=False)
-    #predict.to_csv("tmp_predict.csv", index=False)
+    if gen_temp_file:
+        feature.to_csv("tmp_train.csv", index=False)
+        if predict:
+            predict.to_csv("tmp_predict.csv", index=False)
 
-    feature = pd.read_csv("tmp_train.csv")[:5]
-    predict = pd.read_csv("tmp_predict.csv")
+    if use_temp_file:
+        feature = pd.read_csv("tmp_train.csv")
+        predict = pd.read_csv("tmp_predict.csv")
 
     # read item & customer file
     item_df = pd.read_csv(get_item_to_vec_file_name())
     customer_df = pd.read_csv(get_cus_to_vec_file_name())
 
-    predict_group = predict.groupby(['customer_id'])
+    if predict:
+        predict_group = predict.groupby(['customer_id'])
+    else:
+        predict_group = train.groupby(['customer_id'])
+
     customer_df = customer_df.groupby(['customer_id'])
 
     output = []
 
     for cid, group in tqdm(feature.groupby(["customer_id"])):
 
+
         predict_items = predict_group.get_group(cid)['article_id']
         ans = predict_items.unique()
 
         item_feature = gen_item_features(item_df, group['article_id'])
-        all_feature = item_feature.tolist() + customer_df.get_group(cid).iloc[0][:-1].tolist()
 
-        ############# One label output
-        #for a in ans:
-        #    output.append(all_feature + [a])
+        if predict:
+            all_feature = item_feature.tolist() + customer_df.get_group(cid).iloc[0][:-1].tolist()
+        else:
+            all_feature = item_feature.tolist()
 
         ############# Multi label output
-        #output.append(all_feature + ["#".join([str(x) for x in ans])])
+
+        output.append(all_feature + ["#".join([str(x) for x in ans] )] + [cid])
+
 
     #np.savetxt(args["item_cus_train_data"] + ".gz", output, fmt="%.4f", delimiter=",")
-    pd.DataFrame(data=output).to_csv(args["item_cus_train_data"] + ".csv", index=False)
+
+    if predict:
+        pd.DataFrame(data=output).to_csv(args["item_cus_train_data"] + "_train.csv", index=False)
+    else:
+        pd.DataFrame(data=output).to_csv(args["item_cus_train_data"] + "_predict.csv", index=False)
 
 
 if __name__ == '__main__':
 
     # Prepare meta data
-    gen_cus_to_vec_files()
-    gen_items_to_vec_files()
+    #gen_cus_to_vec_files()
+    #gen_items_to_vec_files()
 
-    gen_training_date_set(args["train_predict_split"])
+    # Gen Train Dataset
+    #gen_training_date_set(split_date = args["train_predict_split"])
+
+    # Gen Predict Dataset
+    gen_training_date_set()
 
 
 

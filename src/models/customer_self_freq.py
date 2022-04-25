@@ -94,8 +94,6 @@ def generate_submission():
 
 
 if __name__ == '__main__':
-
-
     generate_submission()
 
 
