@@ -48,7 +48,7 @@ Then, we created a series of notebooks to set up a suitable environment on [Cola
 
 #### Collaborative Filtering 
 
-We implement collaborative filtering in [Notebook:  Collaborative Filtering](https://github.com/gamecicn/Kaggle_HM/blob/main/notebook/Collaborative%20Filtering.ipynb) . This method achieve a Kaggle score of 0.0127 [5].
+We implement collaborative filtering in [Notebook:  Collaborative Filtering](https://github.com/gamecicn/Kaggle_HM/blob/main/notebook/Collaborative%20Filtering.ipynb) . This method achieves a Kaggle score of 0.0127 [5].
 
 #### Content Based 
 
