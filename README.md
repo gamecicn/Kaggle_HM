@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Xinxin and his team proposed an innovation mechanism to apply Reinforcement Learning as a regularization of supervised learning models for recommender  systems [1].  In the newer paper[2], they advanced introduced negative training samples which can eliminate positive bias in the first paper. Hence  the new models could achieve better performance. The paper's code managed to get State-Of-The-Art performance on RC15[3] and Retailrocket[4] datasets, which are dedicated for recommender system models. However, the recommender system compromise many application environments. We wonder about the generalizability of the method. In this project, we try to apply the second paper's code to data of the latest Kaggle's competition, [H&M Personalized Fashion Recommendations](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations) .  Moreover, we implement other algorithms on the H&M dataset.   Hence, this data set includes our works of two phases: 
+Xinxin and his team proposed an innovation mechanism to apply Reinforcement Learning(RL) as a regularizer of supervised learning models for recommender systems [1]. The RL  regularizer could help traditional supervised learning-based recommender systems (Recsys) maximize long-term reward. In the second paper[2], they additionally introduced negative training samples, which can eliminate positive bias. Hence the models could achieve better performance. The paper's code managed to get State-Of-The-Art performance on RC15[3] and Retailrocket[4] datasets, which are dedicated for the recommender system. However, the recommender system compromises many application environments. We wonder whether their models can work on more complicated datasets. In this project, we try to apply the second paper's code to the latest Kaggle competition data, [H&M Personalized Fashion Recommendations](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations). Moreover, we implement other algorithms on the H&M dataset.   Hence, this data set includes our works in two phases: 
 
 - Apply code of *Supervised Advantage Actor-Critic for Recommender Systems* on data from Kaggle H&M competition.
 - Build other models for  Kaggle H&M competition.
@@ -39,9 +39,11 @@ Then, we created a series of notebooks to set up a suitable environment on [Cola
 | Caser-SNQN  |  0.0068  |  0.0046  |  0.0101   |  0.0056   |  0.0151   |  0.0069   |
 | Caser-SA2C  |  0.0082  |  0.0058  |  0.0111   |  0.0068   |  0.0157   |  0.0079   |
 | NItNet-SNQN |  0.0151  |  0.0104  |  0.0216   |  0.0125   |  0.0304   |  0.0147   |
-| NItNet-SA2C |  0.0319  |  0.0222  |  0.0410   |  0.0252   |  0.0510   |  0.0277   |
+| NItNet-SA2C |  0.0319  |  0.0222  |  0.0410   |  0.0252   |  0.0510   |  0.027714   |
 | SASRec-SNQN |  0.0262  |  0.0175  |  0.0381   |  0.0213   |  0.0504   |  0.0244   |
-| SASRec-SA2C |  0.0399  |  0.0279  |  0.0530   |  0.0322   |  0.0637   |  0.0349   |
+| SASRec-SA2C |  **0.0399**  |  **0.0279**  |  **0.0530**   |  **0.0322**   |  **0.0637**   |  **0.0349**   |
+
+Because of the problem we discussed, the model's performance on the H&M dataset is quite worse than its result on RC15 and Retailrocket. SASRec-SA2C obtained is the best model considering all metrics. We did not test supervised learning models (GRU/Caser/NItNet/SASRec) without reinforcement learning regularization because they are not included in the paper's source code. 
 
 
 ## Phase 2: Other Models
