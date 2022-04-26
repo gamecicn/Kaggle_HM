@@ -1,4 +1,4 @@
-# Reinforcement Learning Regulation Recsys for Kaggle H&M Competition
+# Reinforcement Learning Regularized Recsys for Kaggle H&M Competition
 
 ![HM](./img/title.png)
 
@@ -49,6 +49,19 @@ Then, we created a series of notebooks to set up a suitable environment on [Cola
 
 ## Phase 2: Other Methods
 
+#### Collaborative Filtering 
+
+We implement collaborative filtering in [Notebook:  Collaborative Filtering](https://github.com/gamecicn/Kaggle_HM/blob/main/notebook/Collaborative%20Filtering.ipynb) . This method achieve a Kaggle score of 0.0127 [5].
+
+
+#### Content Based 
+
+ 
+
+
+
+
+
 
 
 ## Code Structure
@@ -57,7 +70,7 @@ Then, we created a series of notebooks to set up a suitable environment on [Cola
 ├── img
 │   └── title.png
 ├── notebook
-│   ├── Collaborative\ Filtering.ipynb
+│   ├── Collaborative Filtering.ipynb
 │   ├── EDA.ipynb
 │   ├── GRU.ipynb
 │   └── HM_SNQN_SASRec.ipynb
@@ -90,6 +103,7 @@ Then, we created a series of notebooks to set up a suitable environment on [Cola
 
 [4] [Retailrocket recommender system dataset | Kaggle](https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset)
 
+[5] [Evaluation of H&M Competition](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations/overview/evaluation)
 
 
 
