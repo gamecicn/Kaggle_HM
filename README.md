@@ -50,7 +50,7 @@ Because of the problem we discussed, the model's performance on the H&M dataset 
 
 #### Collaborative Filtering 
 
-We implement collaborative filtering in [Notebook:  Collaborative Filtering](https://github.com/gamecicn/Kaggle_HM/blob/main/notebook/Collaborative%20Filtering.ipynb) . This method achieves a Kaggle score of 0.0127 [5].
+We implement collaborative filtering in [Notebook:  Collaborative Filtering](https://github.com/gamecicn/Kaggle_HM/blob/main/notebook/Collaborative%20Filtering.ipynb) . This method achieves a Kaggle score of 0.0127 [5]. For a given user (u), our model will search for similar users (eg. 10 users), which represents u's neighborhood. Next, our model will search for the most popular items in this neighborhood of users similar to u then identify the items that are popular in the group of users similar to u, but are not purchased by u. Lastly, our model will recommend those items to u. 
 
 #### Content Based 
 
