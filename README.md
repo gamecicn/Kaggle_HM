@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Xinxin and his team proposed an innovation mechanism to apply Reinforcement Learning as a regulation on supervised learning models for recommend systems [1].  In the newer paper[2], they advanced introduced negative training samples which can eliminate positive bias in the first paper, hence the new models could achieve better performance. The paper's code managed to get State-Of-The-Art performance on RC15[3] and Retailrocket[4] dataset, which are dedicate for recommend system models. However, the recommend system compromise many application environment. We wonder the generalizability of the method. In this project we try to apply the second paper's code on data of a latest Kaggle's competition, [H&M Personalized Fashion Recommendations](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations) .  Moreover, we implement other algorithms on H&M dataset.   Hence, this data set include our works of two phases: 
+Xinxin and his team proposed an innovation mechanism to apply Reinforcement Learning as a regularization of supervised learning models for recommender  systems [1].  In the newer paper[2], they advanced introduced negative training samples which can eliminate positive bias in the first paper. Hence  the new models could achieve better performance. The paper's code managed to get State-Of-The-Art performance on RC15[3] and Retailrocket[4] datasets, which are dedicated for recommender system models. However, the recommender system compromise many application environments. We wonder about the generalizability of the method. In this project, we try to apply the second paper's code to data of the latest Kaggle's competition, [H&M Personalized Fashion Recommendations](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations) .  Moreover, we implement other algorithms on the H&M dataset.   Hence, this data set includes our works of two phases: 
 
 - Apply code of *Supervised Advantage Actor-Critic for Recommender Systems* on data from Kaggle H&M competition.
 - Build other models for  Kaggle H&M competition.
@@ -14,17 +14,17 @@ Xinxin and his team proposed an innovation mechanism to apply Reinforcement Lear
 
 #### Data Preprocessing
 
-Even though the dataset of H&M competition is also prepared for recommend system, it is quite different from RC15 and  Retailrocket which are used in the papers.  Beyond transaction log,  H&M dataset includes items and customer demographic information. Also, there are some major variances between H&M and RC15/Retailrocket's  transaction log: 
+Even though the dataset of H&M competition is also prepared for recommender system, it is quite different from RC15 and  Retailrocket which are used in the papers.  Beyond transaction log,  H&M dataset includes items and customer demographic information. Also, there are some major variances between H&M and RC15/Retailrocket's  transaction log: 
 
-- **Size** :   The H&M transaction is much larger. 
+- **Size** :   The H&M transaction is much larger than RC15/Retailrocket's. 
   -  RC15                 45 MB
   -  Retailrocket     92 MB
   -  H&M                  3.4 GB
--  **Click & Purchase** :  The RC15/Retailrocket transaction  include 'isbuy' feature which could indicate whether customer bought the item in this click action. However, H&M dataset only recorded purchase actions.  This different brings some difficult because the papes's code has some optimization for purchase. 
--  **Timestamp**:   RC15/Retailrocket dataset's timestamp accurate to second, while H&M's records only has date information. 
-- **Session**:  HM data has no session information, so we treat one customer's transactions as one session. WHile most RC15/Retailrocket sessions have fewer than 50 items, the sessions in H&M dataset typically have many more items, some as high as 200. Long sessions cause RNN models to require much more memory and GPU times. 
+-  **Click & Purchase** :  The RC15/Retailrocket transaction  include 'isbuy' feature which could indicate whether the customer bought the item in this click action. However, the H&M dataset only recorded purchase actions.  This difference brings some difficulties  because the papes' code has some optimization for purchase. 
+-  **Timestamp**:   RC15/Retailrocket dataset's timestamp is accurate to second, while H&M's records only have date information. 
+- **Session**:  HM data has no session information, so we treat one customer's transactions as one session. While most RC15/Retailrocket sessions have fewer than 50 items, the sessions in the H&M dataset typically have many more items, some as high as 200. Long sessions cause RNN models to require much more memory and GPU times. 
 
-To overcome above problems, we modified the [data sampling code](https://github.com/gamecicn/Kaggle_HM/blob/main/src/models/gen_replay_buffer.py) to adapt H&M's transaction log to the paper's training code. We only sample training data from 2019 and beyong to ensure the validity of items. Besides, not only sessions with length less than 3 are removed, but also the ones with length over 50 to limit the evaluation memory usage. Finally, we also commented on the part of the calculation of clicks to avoid the calculation error that the number of clicks is 0.
+To overcome the above problems, we modified the [data sampling code](https://github.com/gamecicn/Kaggle_HM/blob/main/src/models/gen_replay_buffer.py) to adapt H&M's transaction log to the paper's training code. We only sample training data from 2019 and beyond to ensure the validity of items. Besides, sessions with lengths less than three are removed, and the ones with lengths over 50 limit the evaluation memory usage. Finally, we also commented on the part of the calculation of clicks to avoid the calculation error that the number of clicks is 0.
 
 
 ####  Result 
@@ -43,26 +43,17 @@ Then, we created a series of notebooks to set up a suitable environment on [Cola
 | SASRec-SNQN |  0.0262  |  0.0175  |  0.0381   |  0.0213   |  0.0504   |  0.0244   |
 | SASRec-SA2C |  0.0399  |  0.0279  |  0.0530   |  0.0322   |  0.0637   |  0.0349   |
 
-####  Conclusion
 
-
-
-## Phase 2: Other Methods
+## Phase 2: Other Models
 
 #### Collaborative Filtering 
 
 We implement collaborative filtering in [Notebook:  Collaborative Filtering](https://github.com/gamecicn/Kaggle_HM/blob/main/notebook/Collaborative%20Filtering.ipynb) . This method achieve a Kaggle score of 0.0127 [5].
 
-
 #### Content Based 
 
+We also build content based models which can use  items and customer demographic information. The source code in  [gen_item_cus_dataset.py](https://github.com/gamecicn/Kaggle_HM/blob/main/src/preprocessing/gen_item_cus_dataset.py) could convert the raw data into supervised learning model friendly structure data.  In [ContentBase_NN](https://github.com/gamecicn/Kaggle_HM/blob/main/notebook/ContentBase_NN.ipynb) , we use PyTorch to implement  a Deep Neural Network to generate a recommendation. However, we fail to train the full model because it triggers out of memory issues on Google Colab Pro. 
  
-
-
-
-
-
-
 
 ## Code Structure
 ```
